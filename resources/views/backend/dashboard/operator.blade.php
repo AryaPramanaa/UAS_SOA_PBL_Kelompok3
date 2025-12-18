@@ -5,7 +5,11 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="X-UA-Compatible" content="ie=edge">
-    @vite('resources/css/app.css')
+    @if(app()->environment('testing'))
+        {{-- Skip Vite asset injection during tests --}}
+    @else
+        @vite('resources/css/app.css')
+    @endif
     <title>Dashboard Operator</title>
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
