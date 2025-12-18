@@ -12,18 +12,25 @@ class LoginController extends Controller
     {
         $credentials = $request->only('username', 'password');
         $remember = $request->has('remember');
-        if (\Illuminate\Support\Facades\Auth::attempt($credentials, $remember)) {
-            $user = \Illuminate\Support\Facades\Auth::user();
-            if ($user->role === 'mahasiswa' && $user->status !== 'Aktif') {
-                \Illuminate\Support\Facades\Auth::logout();
-                return back()->withErrors(['Akun Anda belum aktif. Silakan hubungi operator.']);
+
+        try {
+            if (\Illuminate\Support\Facades\Auth::attempt($credentials, $remember)) {
+                $user = \Illuminate\Support\Facades\Auth::user();
+                if ($user->role === 'mahasiswa' && $user->status !== 'Aktif') {
+                    \Illuminate\Support\Facades\Auth::logout();
+                    return back()->withErrors(['Akun Anda belum aktif. Silakan hubungi operator.']);
+                }
+                $request->session()->regenerate();
+                return redirect()->intended('/dashboard/' . $user->username);
             }
-            $request->session()->regenerate();
-            return redirect()->intended('/dashboard/' . $user->username);
+
+            return back()->withErrors([
+                'username' => 'Username atau password salah',
+            ]);
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::error('Login error: ' . $e->getMessage(), ['exception' => $e]);
+            return back()->withInput()->withErrors(['error' => 'Terjadi kesalahan saat login. Silakan coba lagi.']);
         }
-        return back()->withErrors([
-            'username' => 'Username atau password salah',
-        ]);
     }
 
     public function redirect($username)
