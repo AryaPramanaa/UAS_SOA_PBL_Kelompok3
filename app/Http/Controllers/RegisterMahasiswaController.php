@@ -66,6 +66,15 @@ class RegisterMahasiswaController extends Controller
 
             \Illuminate\Support\Facades\DB::commit();
 
+            // Log successful registration
+            \Illuminate\Support\Facades\Log::info('Registrasi mahasiswa berhasil', [
+                'user_id' => $user->id,
+                'username' => $user->username,
+                'email' => $user->email,
+                'prodi_id' => $request->prodi_id ?? null,
+                'ktm_path' => $ktmPath,
+            ]);
+
             return redirect()->route('login')->with('success', 'Registrasi berhasil! Akun Anda akan diaktifkan oleh operator.');
         } catch (\Exception $e) {
             \Illuminate\Support\Facades\DB::rollBack();

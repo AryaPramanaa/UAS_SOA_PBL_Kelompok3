@@ -7,6 +7,8 @@ use App\Models\Perusahaan;
 use App\Models\Prodi;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Auth;
 
 class akunController extends Controller
 {
@@ -111,6 +113,15 @@ class akunController extends Controller
             }
         }
 
+        // Log account creation
+        Log::info('Akun dibuat', [
+            'actor_id' => Auth::id(),
+            'actor_username' => Auth::user()?->username,
+            'created_user_id' => $user->id,
+            'created_username' => $user->username,
+            'role' => $user->role,
+        ]);
+
         // Jika role kaprodi, hubungkan ke prodi
         if ($request->role === 'kaprodi' && $request->prodi_id) {
             $prodi = Prodi::find($request->prodi_id);
@@ -164,13 +175,30 @@ class akunController extends Controller
 
         $akun->update($data);
 
+        // Log account update
+        Log::info('Akun diperbarui', [
+            'actor_id' => Auth::id(),
+            'actor_username' => Auth::user()?->username,
+            'updated_user_id' => $akun->id,
+            'updated_username' => $akun->username,
+            'changes' => $data,
+        ]);
+
         return redirect()->route('operator.akun.index')
             ->with('success', 'Akun berhasil diperbarui');
     }
 
     public function destroy(User $akun)
     {
+        $deletedUser = $akun->toArray();
         $akun->delete();
+
+        // Log account deletion
+        Log::info('Akun dihapus', [
+            'actor_id' => Auth::id(),
+            'actor_username' => Auth::user()?->username,
+            'deleted_user' => $deletedUser,
+        ]);
 
         return redirect()->route('operator.akun.index')
             ->with('success', 'Akun berhasil dihapus');
@@ -181,6 +209,15 @@ class akunController extends Controller
         $user = \App\Models\User::findOrFail($id);
         $user->status = 'Aktif';
         $user->save();
+
+        // Log activation
+        Log::info('Akun diaktifkan', [
+            'actor_id' => Auth::id(),
+            'actor_username' => Auth::user()?->username,
+            'activated_user_id' => $user->id,
+            'activated_username' => $user->username,
+        ]);
+
         return back()->with('success', 'Akun berhasil diaktifkan.');
     }
 }
