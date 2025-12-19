@@ -122,6 +122,8 @@ Route::middleware(['auth'])->prefix('operator')->name('operator.')->group(functi
     Route::post('/akun/{id}/activate', [App\Http\Controllers\AkunController::class, 'activate'])->name('operator.akun.activate');
     // AJAX: Mahasiswa diterima di perusahaan tertentu untuk surat PKL operator
     Route::get('/surat-pkl/mahasiswa-by-perusahaan/{perusahaan_id}', [App\Http\Controllers\OperatorSuratPKLController::class, 'mahasiswaByPerusahaan'])->name('operator.suratPKL.mahasiswaByPerusahaan');
+    // Operator Hobi (diletakkan di bawah akun)
+    Route::resource('hobi', App\Http\Controllers\OperatorHobiController::class);
 });
 
 //KAPRODI
