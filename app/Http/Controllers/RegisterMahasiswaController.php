@@ -32,35 +32,62 @@ class RegisterMahasiswaController extends Controller
             'prodi_id' => 'required|exists:prodis,id',
         ]);
 
-        // Handle KTM file upload
+        // Use DB transaction and try/catch for safety
+        \Illuminate\Support\Facades\DB::beginTransaction();
         $ktmPath = null;
-        if ($request->hasFile('ktm')) {
-            $ktmFile = $request->file('ktm');
-            $ktmFileName = time() . '_' . $request->nim . '_KTM.' . $ktmFile->getClientOriginalExtension();
-            $ktmPath = $ktmFile->storeAs('public/ktm', $ktmFileName);
+        try {
+            // Handle KTM file upload
+            if ($request->hasFile('ktm')) {
+                $ktmFile = $request->file('ktm');
+                $ktmFileName = time() . '_' . $request->nim . '_KTM.' . $ktmFile->getClientOriginalExtension();
+                $ktmPath = $ktmFile->storeAs('public/ktm', $ktmFileName);
+            }
+
+            $user = User::create([
+                'username' => $request->username,
+                'email' => $request->email,
+                'password' => Hash::make($request->password),
+                'role' => 'mahasiswa',
+                'status' => 'Non Aktif',
+            ]);
+
+            Mahasiswa::create([
+                'nim' => $request->nim,
+                'nama' => $request->nama,
+                'email' => $request->email,
+                'no_hp' => $request->no_hp,
+                'status_aktif' => 'Aktif',
+                'alamat' => $request->alamat,
+                'semester' => $request->semester,
+                'ktm' => $ktmPath,
+                'prodi_id' => $request->prodi_id,
+                'user_id' => $user->id,
+            ]);
+
+            \Illuminate\Support\Facades\DB::commit();
+
+            // Log successful registration
+            \Illuminate\Support\Facades\Log::info('Registrasi mahasiswa berhasil', [
+                'user_id' => $user->id,
+                'username' => $user->username,
+                'email' => $user->email,
+                'prodi_id' => $request->prodi_id ?? null,
+                'ktm_path' => $ktmPath,
+            ]);
+
+            return redirect()->route('login')->with('success', 'Registrasi berhasil! Akun Anda akan diaktifkan oleh operator.');
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\DB::rollBack();
+
+            // Remove uploaded file if something went wrong
+            if ($ktmPath && \Illuminate\Support\Facades\Storage::exists($ktmPath)) {
+                \Illuminate\Support\Facades\Storage::delete($ktmPath);
+            }
+
+            // Log the exception
+            \Illuminate\Support\Facades\Log::error('Registration error: ' . $e->getMessage(), ['exception' => $e]);
+
+            return back()->withInput()->withErrors(['error' => 'Terjadi kesalahan saat registrasi. Silakan coba lagi atau hubungi admin.']);
         }
-
-        $user = User::create([
-            'username' => $request->username,
-            'email' => $request->email,
-            'password' => Hash::make($request->password),
-            'role' => 'mahasiswa',
-            'status' => 'Non Aktif',
-        ]);
-
-        Mahasiswa::create([
-            'nim' => $request->nim,
-            'nama' => $request->nama,
-            'email' => $request->email,
-            'no_hp' => $request->no_hp,
-            'status_aktif' => 'Aktif',
-            'alamat' => $request->alamat,
-            'semester' => $request->semester,
-            'ktm' => $ktmPath,
-            'prodi_id' => $request->prodi_id,
-            'user_id' => $user->id,
-        ]);
-
-        return redirect()->route('login')->with('success', 'Registrasi berhasil! Akun Anda akan diaktifkan oleh operator.');
     }
 } 
